@@ -2286,7 +2286,7 @@ void InverseInferMeta(const MetaTensor& x, MetaTensor* out) {
           input_dims));
   for (int i = 0; i < input_rank; ++i) {
     PADDLE_ENFORCE_EQ(
-        (input_dims[i] == -1) || (input_dims[i] > 0),
+        input_dims[i] >= -1,
         true,
         errors::InvalidArgument(
             "Each dimension of input tensor is expected to be -1 or a "

@@ -118,6 +118,13 @@ class TestInverseOpComplex128(TestInverseOp):
         self.check_grad(['Input'], 'Output', check_pir=True)
 
 
+class TestInverseOpZeroSize(TestInverseOp):
+    def config(self):
+        self.matrix_shape = [0, 0]
+        self.dtype = "float32"
+        self.python_api = paddle.tensor.math.inverse
+
+
 class TestInverseAPI(unittest.TestCase):
     def setUp(self):
         np.random.seed(123)
@@ -198,16 +205,16 @@ class TestInverseSingularAPI(unittest.TestCase):
         if core.is_compiled_with_cuda():
             self.places.append(base.CUDAPlace(0))
 
-    def check_static_result(self, place):
+    def check_static_result(self, place, input_shape):
         with paddle.static.program_guard(
             paddle.static.Program(), paddle.static.Program()
         ):
             input = paddle.static.data(
-                name="input", shape=[4, 4], dtype="float64"
+                name="input", shape=input_shape, dtype="float64"
             )
             result = paddle.inverse(x=input)
 
-            input_np = np.zeros([4, 4]).astype("float64")
+            input_np = np.zeros(input_shape).astype("float64")
 
             exe = base.Executor(place)
             try:
@@ -223,15 +230,19 @@ class TestInverseSingularAPI(unittest.TestCase):
 
     def test_static(self):
         for place in self.places:
-            self.check_static_result(place=place)
+            self.check_static_result(place=place, input_shape=[4, 4])
+            self.check_static_result(place=place, input_shape=[0, 0])
 
     def test_dygraph(self):
         for place in self.places:
             with base.dygraph.guard(place):
                 input_np = np.ones([4, 4]).astype("float64")
+                input_np_zero = np.zeros([0, 0]).astype("float64")
                 input = paddle.to_tensor(input_np)
+                input_zero = paddle.to_tensor(input_np_zero)
                 try:
                     result = paddle.inverse(input)
+                    result_zero = paddle.inverse(input_zero)
                 except RuntimeError as ex:
                     print("The mat is singular")
                 except ValueError as ex:

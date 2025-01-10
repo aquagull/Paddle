@@ -31,7 +31,11 @@ void InverseGradKernel(const Context& dev_ctx,
                        DenseTensor* in_grad) {
   if (in_grad) {
     dev_ctx.template Alloc<T>(in_grad);
-
+    if (out.numel() == 0) {
+      in_grad->Resize(out.dims());
+      dev_ctx.template Alloc<T>(in_grad);
+      return;
+    }
     auto blas = phi::funcs::GetBlas<Context, T>(dev_ctx);
 
     DenseTensor tmp_out;

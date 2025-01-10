@@ -26,7 +26,11 @@ void InverseKernel(const Context& dev_ctx,
                    DenseTensor* out) {
   using XPUType = typename XPUTypeTrait<T>::Type;
   auto out_data = dev_ctx.template Alloc<T>(out);
-
+  if (x.numel() == 0) {
+    out->Resize(x.dims());
+    dev_ctx.template Alloc<T>(out);
+    return;
+  }
   int64_t x_dims_len = x.dims().size();
   PADDLE_ENFORCE_GT(
       x_dims_len,
