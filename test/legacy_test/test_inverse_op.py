@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import unittest
 
 import numpy as np
@@ -128,13 +127,7 @@ class TestInverseOpZeroSize(TestInverseOp):
 class TestInverseAPI(unittest.TestCase):
     def setUp(self):
         np.random.seed(123)
-        self.places = []
-        if (
-            os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-            in ['1', 'true', 'on']
-            or not core.is_compiled_with_cuda()
-        ):
-            self.places.append(base.CPUPlace())
+        self.places = [base.CPUPlace()]
         if core.is_compiled_with_cuda():
             self.places.append(base.CUDAPlace(0))
 
@@ -195,13 +188,7 @@ class TestInverseAPIError(unittest.TestCase):
 
 class TestInverseSingularAPI(unittest.TestCase):
     def setUp(self):
-        self.places = []
-        if (
-            os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-            in ['1', 'true', 'on']
-            or not core.is_compiled_with_cuda()
-        ):
-            self.places.append(base.CPUPlace())
+        self.places = [base.CPUPlace()]
         if core.is_compiled_with_cuda():
             self.places.append(base.CUDAPlace(0))
 
@@ -232,6 +219,7 @@ class TestInverseSingularAPI(unittest.TestCase):
         for place in self.places:
             self.check_static_result(place=place, input_shape=[4, 4])
             self.check_static_result(place=place, input_shape=[0, 0])
+            self.check_static_result(place=place, input_shape=[5, 0, 0])
 
     def test_dygraph(self):
         for place in self.places:
