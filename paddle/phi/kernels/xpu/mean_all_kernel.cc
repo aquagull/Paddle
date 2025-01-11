@@ -24,7 +24,11 @@ void MeanAllKernel(const Context& dev_ctx,
                    const DenseTensor& x,
                    DenseTensor* out) {
   using XPUType = typename XPUTypeTrait<T>::Type;
-
+  if (x.numel == 0) {
+    out->Resize(x.dims());
+    dev_ctx.template Alloc<T>(out);
+    return;
+  }
   auto* input = &x;
   auto* output = out;
   dev_ctx.template Alloc<T>(out);

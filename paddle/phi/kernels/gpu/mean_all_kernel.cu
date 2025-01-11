@@ -28,6 +28,11 @@ void MeanAllKernel(const Context& dev_ctx,
   const T* in_data = x.data<T>();
   T* out_data = dev_ctx.template Alloc<T>(out);
   auto numel = x.numel();
+  if (numel == 0) {
+    out->Resize(x.dims());
+    dev_ctx.template Alloc<T>(out);
+    return;
+  }
   auto rank = x.dims().size();
   auto place = dev_ctx.GetPlace();
   auto stream = dev_ctx.stream();

@@ -24,7 +24,11 @@ void MeanAllKernel(const Context& dev_ctx,
                    const DenseTensor& x,
                    DenseTensor* out) {
   dev_ctx.template Alloc<T>(out);
-
+  if (x.numel == 0) {
+    out->Resize(x.dims());
+    dev_ctx.template Alloc<T>(out);
+    return;
+  }
   auto X = EigenVector<T>::Flatten(x);
   auto y = EigenScalar<T>::From(*out);
   auto& place = *dev_ctx.eigen_device();
