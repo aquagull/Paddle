@@ -16,6 +16,8 @@
 #include <sstream>
 #include <typeinfo>
 #include <vector>
+#include "paddle/fluid/eager/vectorize/vmap_transforms.h"
+#include "paddle/phi/core/batched_tensor.h"
 namespace paddle {
 namespace vmap {
 template <typename Func, typename... Args>
@@ -78,7 +80,7 @@ auto batchedTensorForLoopFallback(Func kernel, Args &&...args) {
     return input_physical_batch.getPhysicalToLogicalMap().apply(
         stacked.view(output_sizes));
   } else if (std::is_same_v<std::decay_t<ResultType>, std::tuple<Args...>>) {
-    constexpr size_t num_returns = std::tuple_size_v<ResultType>;
+    size_t num_returns = std::tuple_size_v<ResultType>;
     std::array<std::vector<Tensor>, num_returns> output_groups;
 
     for (const auto &shard : output_shards) {
