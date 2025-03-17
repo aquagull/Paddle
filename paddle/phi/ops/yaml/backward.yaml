@@ -3425,7 +3425,7 @@
   kernel :
     func : tanh_grad
   composite : tanh_grad(out, out_grad, x_grad)
-  vmap : tanh_grad_batching_rule
+  vmap : tanh_grad_batching_rule(out, grad_out, &grad_x)
   backward : tanh_double_grad
   inplace : (out_grad -> x_grad)
 

@@ -2238,7 +2238,39 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
         else:
             batching_rule_logic_str = ""
             if "vmap" in self.forward_api_contents and not is_inplaced:
-                batching_rule_logic_str = f"""  if ({' || '.join([f'phi::isBatchedTensor({arg})' for arg in inputs_call_list_only_tensor])}) {{
+                if "_grad" in forward_ad_function_name:
+                    define_return_values_str = "\n".join(
+                        [
+                            f"    {ttype} {name};"
+                            for name, (
+                                ttype,
+                                _,
+                            ) in self.forward_outputs_position_map.items()
+                        ]
+                    )
+                    define_return_values_str = define_return_values_str.replace(
+                        "Tensor", "paddle::Tensor"
+                    )
+                    return_values_str = list(
+                        self.forward_outputs_position_map.keys()
+                    )
+                    if len(return_values_str) == 1:
+                        return_values_str = f"{return_values_str[0]}"
+                    else:
+                        return_values_str = f"{returns_type_str}({', '.join(return_values_str)})"
+                    batching_rule_logic_str = f"""  if ({' || '.join([f'phi::isBatchedTensor({arg})' for arg in inputs_call_list_only_tensor])}) {{
+{define_return_values_str}
+    paddle::vmap::{self.forward_api_contents['vmap']};
+    return {return_values_str};
+  }}
+"""
+                    # if "tanh_grad" in forward_ad_function_name:
+                    #     print(forward_ad_function_name)
+                    #     print(self.forward_outputs_position_map)
+                    #     print(colored(self.backward_grad_outputs_map, 'red'))
+                    #     raise
+                else:
+                    batching_rule_logic_str = f"""  if ({' || '.join([f'phi::isBatchedTensor({arg})' for arg in inputs_call_list_only_tensor])}) {{
     return paddle::vmap::{self.forward_api_contents['vmap']};
   }}
 """
@@ -2273,6 +2305,10 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                 log_str,
                 returns_str,
             )
+            # if "tanh_grad" in forward_ad_function_name:
+            #     print(batching_rule_logic_str)
+            #     # print(self.forward_definition_str)
+            #     raise
 
         self.forward_declaration_str += f"TEST_API {returns_type_str} {forward_ad_function_name}({inputs_args_declaration_str});\n"
 

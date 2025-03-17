@@ -30,7 +30,7 @@ set(forwards_h_path
     "${PADDLE_SOURCE_DIR}/paddle/fluid/eager/api/generated/eager_generated/forwards/dygraph_functions.h"
 )
 set(backwards_cc_path
-    "${PADDLE_SOURCE_DIR}/paddle/fluid/eager/api/generated/eager_generated/forwards/dygraph_grad_functions_dummy.cc"
+    "${PADDLE_SOURCE_DIR}/paddle/fluid/eager/api/generated/eager_generated/forwards/dygraph_grad_functions.cc"
 )
 set(backwards_h_path
     "${PADDLE_SOURCE_DIR}/paddle/fluid/eager/api/generated/eager_generated/forwards/dygraph_grad_functions.h"
