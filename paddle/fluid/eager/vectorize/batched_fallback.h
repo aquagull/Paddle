@@ -18,9 +18,24 @@
 #include <tuple>
 #include <type_traits>
 #include "paddle/phi/api/include/tensor.h"
+#include "paddle/utils/small_vector.h"
 
 namespace paddle {
 namespace vmap {
+static paddle::small_vector<indexing::TensorIndex, kVmapStaticDimVecSize>
+computeIndex(int64_t linear_idx, IntArrayRef sizes) {
+  paddle::small_vector<indexing::TensorIndex, kVmapStaticDimVecSize> result;
+  result.reserve(sizes.size());
+  for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
+    auto remainder = linear_idx % *it;
+    result.push_back(remainder);
+    linear_idx -= remainder;
+    linear_idx /= *it;
+  }
+  std::reverse(std::begin(result), std::end(result));
+  return result;
+}
+
 template <typename>
 struct is_tuple : std::false_type {};
 

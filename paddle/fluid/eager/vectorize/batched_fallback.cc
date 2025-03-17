@@ -48,13 +48,15 @@ auto batchedTensorForLoopFallback(Func kernel, Args &&...args) {
   // 准备分片参数
   auto prepare_sliced_args = [&](int64_t linear_idx) {
     return std::make_tuple([&](auto &&arg) {
-      int64_t index = computeIndex(linear_idx, batch_sizes);
       if constexpr (is_batched_v<std::decay_t<decltype(arg)>>) {
         auto *batched = maybeGetBatchedTensorImpl(arg);
         if (input_physical_batch == nullptr) {
-          input_physical_batch = logicalToPhysical(batched);
+          input_physical_batch =
+              MultiBatchVmapTransform::logicalToPhysical(batched);
         }
-        return logicalToPhysical(batched).tensor().index(index);
+        return MultiBatchVmapTransform::logicalToPhysical(batched)
+            .tensor()
+            .slice(linear_idx, linear_idx + 1);
       } else {
         return arg;
       }
