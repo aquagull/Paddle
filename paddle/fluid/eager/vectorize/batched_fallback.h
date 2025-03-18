@@ -22,33 +22,7 @@
 
 namespace paddle {
 namespace vmap {
-static paddle::small_vector<indexing::TensorIndex, kVmapStaticDimVecSize>
-computeIndex(int64_t linear_idx, IntArrayRef sizes) {
-  paddle::small_vector<indexing::TensorIndex, kVmapStaticDimVecSize> result;
-  result.reserve(sizes.size());
-  for (auto it = sizes.rbegin(); it != sizes.rend(); it++) {
-    auto remainder = linear_idx % *it;
-    result.push_back(remainder);
-    linear_idx -= remainder;
-    linear_idx /= *it;
-  }
-  std::reverse(std::begin(result), std::end(result));
-  return result;
-}
-
-template <typename>
-struct is_tuple : std::false_type {};
-
-template <typename... T>
-struct is_tuple<std::tuple<T...>> : std::true_type {};
-
-template <typename T>
-struct all_tensors : std::false_type {};
-
-template <>
-struct all_tensors<paddle::Tensor> : std::true_type {};
-
-template <typename... Ts>
-struct all_tensors<std::tuple<Ts...>> : std::conjunction<all_tensors<Ts>...> {};
+template <typename Func, typename... Args>
+auto batchedTensorForLoopFallback(Func kernel, Args &&...args);
 };  // namespace vmap
 };  // namespace paddle

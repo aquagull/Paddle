@@ -13,13 +13,34 @@
 // limitations under the License.
 
 #include "paddle/fluid/eager/vectorize/batched_fallback.h"
+#include <array>
 #include <sstream>
 #include <typeinfo>
 #include <vector>
 #include "paddle/fluid/eager/vectorize/vmap_transforms.h"
+#include "paddle/phi/api/include/api.h"
 #include "paddle/phi/core/batched_tensor.h"
+#include "paddle/phi/core/meta_tensor.h"
+#include "paddle/phi/infermeta/unary.h"
+#include "paddle/phi/kernels/stack_kernel.h"
+
 namespace paddle {
 namespace vmap {
+template <typename>
+struct is_tuple : std::false_type {};
+
+template <typename... T>
+struct is_tuple<std::tuple<T...>> : std::true_type {};
+
+template <typename T>
+struct all_tensors : std::false_type {};
+
+template <>
+struct all_tensors<paddle::Tensor> : std::true_type {};
+
+template <typename... Ts>
+struct all_tensors<std::tuple<Ts...>> : std::conjunction<all_tensors<Ts>...> {};
+
 template <typename Func, typename... Args>
 auto batchedTensorForLoopFallback(Func kernel, Args &&...args) {
   using ResultType = decltype(kernel(std::declval<Args>()...));
@@ -75,14 +96,14 @@ auto batchedTensorForLoopFallback(Func kernel, Args &&...args) {
   // ..., [out1_bN, out2_bN...]] 需要将 ​每个返回值（out1,out2,
   // ...）的对应分片独立合并，最终返回 [merged_out1, merged_out2...]
   if constexpr (std::is_same_v<ResultType, Tensor>) {
-    auto stacked = stack(output_shards);  // 堆叠结果
+    auto stacked = stack_ad_func(output_shards, 0);  // 堆叠结果
     VmapDimVector output_sizes(batch_sizes);
     output_sizes.insert(
         output_sizes.end(), stacked.sizes().begin() + 1, stacked.sizes().end());
     return input_physical_batch.getPhysicalToLogicalMap().apply(
         stacked.view(output_sizes));
   } else if (std::is_same_v<std::decay_t<ResultType>, std::tuple<Args...>>) {
-    size_t num_returns = std::tuple_size_v<ResultType>;
+    constexpr size_t num_returns = std::tuple_size_v<ResultType>;
     std::array<std::vector<Tensor>, num_returns> output_groups;
 
     for (const auto &shard : output_shards) {
@@ -97,7 +118,7 @@ auto batchedTensorForLoopFallback(Func kernel, Args &&...args) {
     return std::apply(
         [&](auto &...groups) {
           return std::make_tuple([&] {
-            auto stacked = stack(groups);
+            auto stacked = stack_ad_func(groups);
             VmapDimVector output_sizes(batch_sizes);
             output_sizes.insert(output_sizes.end(),
                                 stacked.sizes().begin() + 1,
